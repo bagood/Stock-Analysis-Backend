@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
+from curl_cffi import requests
 from sklearn.linear_model import LinearRegression
 
 # This script assumes the existence of a 'technicalIndicators' module
@@ -19,17 +20,31 @@ def download_stock_data(emiten, start_date, end_date):
 
     Returns:
         pd.DataFrame: A DataFrame containing the historical stock data.
-    """
-    # Convert string dates to datetime objects.
-    start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    end_date = datetime.strptime(end_date, '%Y-%m-%d')
-
+    """    
     # Download data from Yahoo Finance, appending '.JK' for the Jakarta Stock Exchange.
-    data = yf.download(f'{emiten}.JK', start=start_date, end=end_date)
-    # Simplify column names (e.g., 'Adj Close' becomes 'Adj').
-    data.columns = [col[0] for col in data.columns]
+    session = requests.Session(impersonate="chrome")
+    ticker = yf.Ticker(emiten, session=session)
+
+    if start_date != '' or end_date != '':
+        # Convert string dates to datetime objects.
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        data = ticker.history(start=start_date, end=end_date)
+    else:
+        data = ticker.history(period='max')
+    
+    # Drop the the columns Dividends, Stock Splits, and Capital Gains from the data
+    for col in ['Dividends', 'Stock Splits', 'Capital Gains']:
+        try:
+            data.drop(columns=[col], inplace=True)
+        except:
+            pass
+    
     # Move the 'Date' from the index to a column.
     data.reset_index(inplace=True)
+
+    # Convert the Date format into YYYY-MM-DD
+    data['Date'] = data['Date'].apply(lambda val: datetime.strptime(str(val).split(' ')[0], '%Y-%m-%d').date())
 
     return data
 
@@ -112,7 +127,7 @@ def generate_all_linreg_gradients(data, target_column, rolling_window):
 
     return data
 
-def prepare_data_for_modelling(emiten, start_date, end_date, target_column, rolling_windows):
+def prepare_data_for_modelling(emiten, start_date, end_date, target_column, rolling_windows, download=True):
     """
     Orchestrates the full data preparation pipeline for a machine learning model.
 
@@ -130,17 +145,19 @@ def prepare_data_for_modelling(emiten, start_date, end_date, target_column, roll
     Returns:
         pd.DataFrame: A clean DataFrame ready for model training.
     """
-    # Load data either by downloading or from a local CSV file.
-    # data = download_stock_data(emiten, start_date, end_date)
-    data = pd.read_csv(f'dataPreparation/BBCA.csv')
+    # Load data by downloading from yahoo finance  API.
+    if download:
+        data = download_stock_data(emiten, start_date, end_date)
+    else:
+        data = pd.read_csv('dataPreparation/BBCA.csv')
 
     # Generate the future trend labels for each specified rolling window.
     for rolling_window in rolling_windows:
         data = generate_all_linreg_gradients(data, target_column, rolling_window)
-        
+
     # Generate all technical indicators to be used as features.
     data = generate_all_technical_indicators(data)
     # Remove any rows that have NaN values after all calculations are complete.
     data.dropna(inplace=True)
-
+    
     return data
