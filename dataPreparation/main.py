@@ -25,13 +25,20 @@ def download_stock_data(emiten, start_date, end_date):
     session = requests.Session(impersonate="chrome")
     ticker = yf.Ticker(emiten, session=session)
 
-    if start_date != '' or end_date != '':
-        # Convert string dates to datetime objects.
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
-        data = ticker.history(start=start_date, end=end_date)
-    else:
+    if start_date == '' and end_date == '':
         data = ticker.history(period='max')
+    else:
+        if start_date != '':
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        else:
+            start_date = datetime.now()
+
+        if end_date != '':
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        else:
+            end_date = datetime.now()
+
+        data = ticker.history(start=start_date, end=end_date)
     
     # Drop the the columns Dividends, Stock Splits, and Capital Gains from the data
     for col in ['Dividends', 'Stock Splits', 'Capital Gains']:
