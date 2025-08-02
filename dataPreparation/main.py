@@ -94,12 +94,15 @@ def _bin_linreg_gradients(val):
     Returns:
         str: 'Up Trend' for non-negative slopes, 'Down Trend' for negative slopes.
     """
-    # Classify the trend as 'Down Trend' if the slope is negative.
-    if val < 0:
-        return 'Down Trend'
-    # Otherwise, classify it as 'Up Trend'.
+    if np.isnan(val):
+        return val
     else:
-        return 'Up Trend'
+        # Classify the trend as 'Down Trend' if the slope is negative.
+        if val < 0:
+            return 'Down Trend'
+        # Otherwise, classify it as 'Up Trend'.
+        else:
+            return 'Up Trend'
 
 def generate_all_linreg_gradients(data, target_column, rolling_window):
     """
@@ -158,13 +161,14 @@ def prepare_data_for_modelling(emiten, start_date, end_date, target_column, roll
     else:
         data = pd.read_csv('dataPreparation/BBCA.csv')
 
+    # Generate all technical indicators to be used as features.
+    data = generate_all_technical_indicators(data)
+
+    # Remove any rows that have NaN values after all calculations are complete.
+    data.dropna(inplace=True)
+
     # Generate the future trend labels for each specified rolling window.
     for rolling_window in rolling_windows:
         data = generate_all_linreg_gradients(data, target_column, rolling_window)
-
-    # Generate all technical indicators to be used as features.
-    data = generate_all_technical_indicators(data)
-    # Remove any rows that have NaN values after all calculations are complete.
-    data.dropna(inplace=True)
     
     return data

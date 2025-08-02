@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.stats import randint, uniform
 from catboost import CatBoostClassifier
+from scipy.stats import randint, uniform
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import classification_report, roc_auc_score
 
@@ -21,22 +21,27 @@ def split_data_to_train_and_test(data, feature_columns, target_column):
         tuple: A tuple containing the split data:
                (train_feature, train_target, test_feature, test_target).
     """
-    # Define the split point: all data except the last 30 rows is for training.
-    train_length = len(data) - 30
-    
+    # Define the split point: all data except the last 30 rows + missing rows is for training.
+    forecast_length = data[target_column].isna().sum()
+    train_length = len(data) - 30 - forecast_length
+
     # Create the training and testing DataFrames.
     train_data = data.head(train_length)
-    test_data = data.tail(30)
+    test_data = data.tail(30 + forecast_length).head(30)
+    forecast_data = data.tail(forecast_length)
 
     # Extract feature and target arrays for the training set.
     train_feature = train_data[feature_columns].values
     train_target = train_data[target_column].values.reshape(-1, 1)
-
+ 
     # Extract feature and target arrays for the testing set.
     test_feature = test_data[feature_columns].values
     test_target = test_data[target_column].values.reshape(-1, 1)
 
-    return train_feature, train_target, test_feature, test_target
+    # Extract feature arrays for the forecast set.
+    foreacast_feature = forecast_data[feature_columns].values
+
+    return train_feature, train_target, test_feature, test_target, foreacast_feature
 
 def initialize_and_fit_model(train_feature, train_target):
     """
