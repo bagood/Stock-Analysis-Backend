@@ -202,7 +202,7 @@ def identify_current_trends_on_peaks(price, peaks_index, n_peaks):
     # Iterate through each price point (each day) in the dataset.
     for i, p in enumerate(price):
         # Advance the 'start_index' to keep track of which peak is next.
-        if peaks_index[start_index] < i:
+        if peaks_index[np.min([start_index, len(peaks_index)-1])] < i:
             start_index += 1
         
         # Get the last N peaks that occurred before the current day 'i'.
@@ -239,6 +239,10 @@ def identify_obv_indicators(data):
     # Identify all significant resistance and support points in the closing price.
     resistances_index = identify_all_peaks(data['Close'].values, 'resistance')
     supports_index = identify_all_peaks(data['Close'].values, 'support')
+
+    # Added the last index of the data as the resistance and supports points 
+    resistances_index.append(len(data)-1)
+    supports_index.append(len(data)-1)
     
     # Calculate the trend of the PRICE between the last 3 resistance points.
     price_resistance_trend = identify_current_trends_on_peaks(data['Close'].values, resistances_index, 3)

@@ -57,7 +57,7 @@ def initialize_and_fit_model(train_feature, train_target):
     # Initialize the CatBoost Classifier with baseline settings.
     model = CatBoostClassifier(
         loss_function='Logloss',      # Loss function suitable for binary classification.
-        eval_metric='Accuracy',       # Metric to evaluate during training.
+        eval_metric='AUC',       # Metric to evaluate during training.
         random_seed=42,               # Ensures reproducibility.
         logging_level='Silent'        # Suppresses verbose output during training.
     )
@@ -76,7 +76,7 @@ def initialize_and_fit_model(train_feature, train_target):
             param_distributions=param_dist,
             n_iter=1000,                  # Number of parameter settings that are sampled.
             cv=3,                         # Number of cross-validation folds.
-            scoring='accuracy',           # Metric to optimize.
+            scoring='roc_auc',            # Metric to optimize.
             n_jobs=-1,                    # Use all available CPU cores.
             random_state=42,              # Ensures reproducibility of the search.
             verbose=1                     # Prints progress updates.
