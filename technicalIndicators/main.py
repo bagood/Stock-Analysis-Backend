@@ -16,6 +16,8 @@ def generate_all_technical_indicators(
         ad_2_threshold=0.1
     ):
 
+    original_columns = set(data.columns)
+
     data = sar.identify_parabolic_sar_indicators(data, acceleration_factor)
     data = ao.identify_ao_indicators(data)
     data = obv.identify_obv_indicators(data)
@@ -24,5 +26,11 @@ def generate_all_technical_indicators(
     data = ad.identify_ad_indicators(data, ad_1_rolling_window, ad_1_threshold)
     data = ad.identify_ad_indicators(data, ad_2_rolling_window, ad_2_threshold)
     data = macd.identify_macd_indicators(data)
+
+    updated_columns = set(data.columns)
+    feature_columns = list(updated_columns - original_columns)
+    with open('modelDevelopment/technical_indicator_features.txt', "w") as file:
+        for fea_col in feature_columns:
+            file.write(fea_col + "\n")
 
     return data

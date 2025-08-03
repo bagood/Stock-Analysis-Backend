@@ -1,7 +1,7 @@
 from skopt import BayesSearchCV
 from skopt.space import Real, Integer
 from catboost import CatBoostClassifier
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 
 def split_data_to_train_and_test(data, feature_columns, target_column):
     """
@@ -78,7 +78,7 @@ def initialize_and_fit_model(train_feature, train_target):
     hypetune_search = BayesSearchCV(
         estimator=model,
         search_spaces=search_spaces,
-        n_iter=100,
+        n_iter=10,
         cv=3,
         scoring='roc_auc',
         n_jobs=-1,
@@ -99,6 +99,17 @@ def initialize_and_fit_model(train_feature, train_target):
     best_model = hypetune_search.best_estimator_
 
     return best_model
+
+def calculate_classification_metrics(model, target_true, target_pred):
+    accuracy = accuracy_score(target_true, target_pred)
+    
+    precision_up_trend = precision_score(target_true, target_pred, pos_label='Up Trend')
+    precision_down_trend = precision_score(target_true, target_pred, pos_label='Down Trend')
+
+    recall_up_trend = recall_score(target_true, target_pred, pos_label='Up Trend')
+    recall_down_trend = recall_score(target_true, target_pred, pos_label='Down Trend')
+
+    return accuracy, precision_up_trend, precision_down_trend, recall_up_trend, recall_down_trend
 
 def calculate_gini(target_true, target_pred_proba):
     """
@@ -141,11 +152,20 @@ def _measure_model_performance(model, feature, target):
     target_pred_proba = model.predict_proba(feature)
     
     # Generate a detailed classification report (precision, recall, f1-score).
-    report = classification_report(target, target_pred)
+    accuracy, precision_up_trend, precision_down_trend, recall_up_trend, recall_down_trend = calculate_classification_metrics(model, target, target_pred)
     # Calculate the Gini coefficient.
     gini = calculate_gini(target, target_pred_proba)
 
-    return report, gini
+    all_metrics = {
+        'accuracy': accuracy,
+        'precicion up trend': precision_up_trend,
+        'precicion down trend': precision_down_trend,
+        'recall up trend': recall_up_trend,
+        'recall down trend': recall_down_trend,
+        'gini': gini
+    }
+
+    return all_metrics
     
 def measure_model_performance(model, train_feature, train_target, test_feature, test_target):
     """
@@ -163,21 +183,20 @@ def measure_model_performance(model, train_feature, train_target, test_feature, 
         test_target (np.array): The target variable for testing.
     """
     # Calculate performance metrics for the training set.
-    train_report, train_gini = _measure_model_performance(model, train_feature, train_target)
+    train_metrics = _measure_model_performance(model, train_feature, train_target)
     # Calculate performance metrics for the testing set.
-    test_report, test_gini = _measure_model_performance(model, test_feature, test_target)
+    test_metrics = _measure_model_performance(model, test_feature, test_target)
+    
+    return train_metrics, test_metrics
 
-    # Print the formatted performance reports.
-    print('Model performance on training data')
-    print('')
-    print(train_report)
-    print('    Gini: ', train_gini)
-    print('')
-    
-    print('Model performance on testing data')
-    print('')
-    print(test_report)
-    print('    Gini:  ', test_gini)
-    print('')
-    
-    return
+def develop_model(prepared_data, target_column):
+    feature_columns = []
+    with open('technical_indicator_features.txt', "r") as file:
+        for fea_col in file:
+            feature_columns.append(fea_col.strip())
+
+    train_feature, train_target, test_feature, test_target, forecast_feature = split_data_to_train_and_test(prepared_data, feature_columns, target_column)
+    model = initialize_and_fit_model(train_feature, train_target)
+    train_metrics, test_metrics = measure_model_performance(model, train_feature, train_target, test_feature, test_target)
+
+    return train_metrics, test_metrics
