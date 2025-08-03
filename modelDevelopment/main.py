@@ -78,7 +78,7 @@ def initialize_and_fit_model(train_feature, train_target):
     hypetune_search = BayesSearchCV(
         estimator=model,
         search_spaces=search_spaces,
-        n_iter=10,
+        n_iter=100,
         cv=3,
         scoring='roc_auc',
         n_jobs=-1,
@@ -157,12 +157,12 @@ def _measure_model_performance(model, feature, target):
     gini = calculate_gini(target, target_pred_proba)
 
     all_metrics = {
-        'accuracy': accuracy,
-        'precicion up trend': precision_up_trend,
-        'precicion down trend': precision_down_trend,
-        'recall up trend': recall_up_trend,
-        'recall down trend': recall_down_trend,
-        'gini': gini
+        'Accuracy': [accuracy],
+        'Precicion Up Trend': [precision_up_trend],
+        'Precicion Down Trend': [precision_down_trend],
+        'Recall Up Trend': [recall_up_trend],
+        'Recall Down Trend': [recall_down_trend],
+        'Gini': [gini]
     }
 
     return all_metrics
@@ -191,7 +191,7 @@ def measure_model_performance(model, train_feature, train_target, test_feature, 
 
 def develop_model(prepared_data, target_column):
     feature_columns = []
-    with open('technical_indicator_features.txt', "r") as file:
+    with open('modelDevelopment/technical_indicator_features.txt', "r") as file:
         for fea_col in file:
             feature_columns.append(fea_col.strip())
 
@@ -199,4 +199,4 @@ def develop_model(prepared_data, target_column):
     model = initialize_and_fit_model(train_feature, train_target)
     train_metrics, test_metrics = measure_model_performance(model, train_feature, train_target, test_feature, test_target)
 
-    return train_metrics, test_metrics
+    return model, train_metrics, test_metrics

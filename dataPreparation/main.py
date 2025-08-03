@@ -159,7 +159,7 @@ def prepare_data_for_modelling(emiten, start_date, end_date, target_column, roll
     if download:
         data = download_stock_data(emiten, start_date, end_date)
     else:
-        data = pd.read_csv('dataPreparation/BBCA.csv')
+        data = pd.read_csv('dataPreparation/dummy_data.csv')
 
     # Generate all technical indicators to be used as features.
     data = generate_all_technical_indicators(data)
