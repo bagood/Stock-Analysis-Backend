@@ -1,7 +1,6 @@
-import numpy as np
+from skopt import BayesSearchCV
+from skopt.space import Real, Integer
 from catboost import CatBoostClassifier
-from scipy.stats import randint, uniform
-from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import classification_report, roc_auc_score
 
 def split_data_to_train_and_test(data, feature_columns, target_column):
@@ -62,42 +61,42 @@ def initialize_and_fit_model(train_feature, train_target):
     # Initialize the CatBoost Classifier with baseline settings.
     model = CatBoostClassifier(
         loss_function='Logloss',      # Loss function suitable for binary classification.
-        eval_metric='AUC',       # Metric to evaluate during training.
+        eval_metric='AUC',            # Metric to evaluate during training.
         random_seed=42,               # Ensures reproducibility.
         logging_level='Silent'        # Suppresses verbose output during training.
     )
     
     # Define the distribution of hyperparameters to sample from during the search.
-    param_dist = {
-        'depth': randint(1, 5),                      # Tree depth.
-        'learning_rate': uniform(0.01, 0.1),         # Step size shrinkage.
-        'iterations': randint(150, 300),             # Number of boosting iterations (trees).
-        'l2_leaf_reg': uniform(0.5, 3)               # L2 regularization strength.
+    search_spaces = {
+        'depth': Integer(1, 5),                                # Tree depth
+        'learning_rate': Real(0.01, 0.1, prior='log-uniform'), # Step size shrinkage
+        'iterations': Integer(150, 300),                       # Number of boosting iterations
+        'l2_leaf_reg': Real(0.5, 3.0)                          # L2 regularization strength
     }
 
     # Set up the Randomized Search with cross-validation.
-    random_search = RandomizedSearchCV(
-            estimator=model,
-            param_distributions=param_dist,
-            n_iter=1000,                  # Number of parameter settings that are sampled.
-            cv=3,                         # Number of cross-validation folds.
-            scoring='roc_auc',            # Metric to optimize.
-            n_jobs=-1,                    # Use all available CPU cores.
-            random_state=42,              # Ensures reproducibility of the search.
-            verbose=1                     # Prints progress updates.
-        )
+    hypetune_search = BayesSearchCV(
+        estimator=model,
+        search_spaces=search_spaces,
+        n_iter=100,
+        cv=3,
+        scoring='roc_auc',
+        n_jobs=-1,
+        random_state=42,
+        verbose=1
+    )
 
     # Run the randomized search to find the best hyperparameters.
-    random_search.fit(train_feature, train_target)
+    hypetune_search.fit(train_feature, train_target)
     
     # Print the results of the hyperparameter search.
-    print("Best parameters found by RandomizedSearchCV:")
-    print(random_search.best_params_)
-    print(f"\nBest cross-validated accuracy: {random_search.best_score_:.4f}")
+    print("Best parameters found from hyperparameter tuning:")
+    print(hypetune_search.best_params_)
+    print(f"\nBest cross-validated ROC AUC: {hypetune_search.best_score_:.4f}")
     print("-" * 30 + "\n")
     
     # Get the best model found during the search.
-    best_model = random_search.best_estimator_
+    best_model = hypetune_search.best_estimator_
 
     return best_model
 
