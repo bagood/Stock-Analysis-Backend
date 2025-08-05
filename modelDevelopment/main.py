@@ -1,9 +1,11 @@
+import numpy as np
 from skopt import BayesSearchCV
 from skopt.space import Real, Integer
 from catboost import CatBoostClassifier
+from sklearn.model_selection import PredefinedSplit
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 
-def split_data_to_train_and_test(data, feature_columns, target_column):
+def split_data_to_train_val_test(data, feature_columns, target_column):
     """
     Splits the dataset into training and testing sets based on a fixed time-series split.
 
@@ -40,9 +42,15 @@ def split_data_to_train_and_test(data, feature_columns, target_column):
     # Extract feature arrays for the forecast set.
     foreacast_feature = forecast_data[feature_columns].values
 
-    return train_feature, train_target, test_feature, test_target, foreacast_feature
+    # Flag the training index as -1 while the validation index as 0 
+    # Validation index is that last 30 index of the data
+    split_index = np.ones(len(train_feature)) * -1
+    split_index[-30:] = 0
+    predefined_split_index = PredefinedSplit(test_fold=split_index)
 
-def initialize_and_fit_model(train_feature, train_target):
+    return train_feature, train_target, test_feature, test_target, predefined_split_index, foreacast_feature
+
+def initialize_and_fit_model(train_feature, train_target, predefined_split_index):
     """
     Initializes, tunes, and fits a CatBoost Classifier model using Randomized Search.
 
@@ -75,15 +83,20 @@ def initialize_and_fit_model(train_feature, train_target):
     }
 
     # Set up the Randomized Search with cross-validation.
+    if len(np.unique(train_target[-30:])) == 1:
+        scoring_method = 'accuracy'
+    else:
+        scoring_method = 'roc_auc'
+
     hypetune_search = BayesSearchCV(
         estimator=model,
         search_spaces=search_spaces,
         n_iter=100,
-        cv=3,
-        scoring='roc_auc',
+        cv=predefined_split_index,
+        scoring=scoring_method,
         n_jobs=-1,
         random_state=42,
-        verbose=1
+        verbose=0
     )
 
     # Run the randomized search to find the best hyperparameters.
@@ -92,7 +105,10 @@ def initialize_and_fit_model(train_feature, train_target):
     # Print the results of the hyperparameter search.
     print("Best parameters found from hyperparameter tuning:")
     print(hypetune_search.best_params_)
-    print(f"\nBest cross-validated ROC AUC: {hypetune_search.best_score_:.4f}")
+    if scoring_method == 'accuracy':
+        print(f"\nBest cross-validated Accuracy: {hypetune_search.best_score_:.4f}")
+    elif scoring_method == 'roc_auc':
+        print(f"\nBest cross-validated ROC AUC: {hypetune_search.best_score_:.4f}")
     print("-" * 30 + "\n")
     
     # Get the best model found during the search.
@@ -100,7 +116,7 @@ def initialize_and_fit_model(train_feature, train_target):
 
     return best_model
 
-def calculate_classification_metrics(model, target_true, target_pred):
+def calculate_classification_metrics(target_true, target_pred):
     accuracy = accuracy_score(target_true, target_pred)
     
     precision_up_trend = precision_score(target_true, target_pred, pos_label='Up Trend')
@@ -152,7 +168,7 @@ def _measure_model_performance(model, feature, target):
     target_pred_proba = model.predict_proba(feature)
     
     # Generate a detailed classification report (precision, recall, f1-score).
-    accuracy, precision_up_trend, precision_down_trend, recall_up_trend, recall_down_trend = calculate_classification_metrics(model, target, target_pred)
+    accuracy, precision_up_trend, precision_down_trend, recall_up_trend, recall_down_trend = calculate_classification_metrics(target, target_pred)
     # Calculate the Gini coefficient.
     gini = calculate_gini(target, target_pred_proba)
 
@@ -195,8 +211,8 @@ def develop_model(prepared_data, target_column):
         for fea_col in file:
             feature_columns.append(fea_col.strip())
 
-    train_feature, train_target, test_feature, test_target, forecast_feature = split_data_to_train_and_test(prepared_data, feature_columns, target_column)
-    model = initialize_and_fit_model(train_feature, train_target)
+    train_feature, train_target, test_feature, test_target, predefined_split_index, forecast_feature = split_data_to_train_val_test(prepared_data, feature_columns, target_column)
+    model = initialize_and_fit_model(train_feature, train_target, predefined_split_index)
     train_metrics, test_metrics = measure_model_performance(model, train_feature, train_target, test_feature, test_target)
 
     return model, train_metrics, test_metrics

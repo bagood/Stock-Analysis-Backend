@@ -61,7 +61,7 @@ def develop_models_for_selected_kode(selected_kode):
     all_model_performances_15_days = pd.DataFrame()
     
     for kode in selected_kode:
-        prepared_data = prepare_data_for_modelling(f'{kode}.JK', '2021-01-01', '', 'Close', [10, 15], download=False)
+        prepared_data = prepare_data_for_modelling(f'{kode}.JK', '2021-01-01', '', 'Close', [10, 15], download=True)
 
         model_10_days, train_metrics_10_days, test_metrics_10_days = develop_model(prepared_data, 'Upcoming 10 Days Trend')
         model_15_days, train_metrics_15_days, test_metrics_15_days = develop_model(prepared_data, 'Upcoming 15 Days Trend')

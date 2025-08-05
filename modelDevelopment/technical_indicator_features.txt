@@ -1,34 +1,34 @@
-5 Days Historical AD Sideways
-Price Support Trend
-5 Days Historical Downtrend
 5 Days Historical Uptrend
-10 Days Historical AD Sideways
-Lower Price Resistance Trend SAR
 10 Days Historical Uptrend
-10 Days Historical AD Uptrend
-MACD Sideways
-MACD Downwards
-Volume Resistance Trend
-ADX Weaktrend 14
-Volume Suppport Trend
 Price Resistance Trend
-RSI Oversold
-Aaron
-5 Days Historical AD Uptrend
-Aroon Down
-10 Days Historical AD Downtrend
-Aroon Up
-10 Days Historical Sideways
-ADX Uptrend 14
-Change Price Resistance Trend SAR
-5 Days Historical AD Downtrend
-Change Price Support Trend SAR
-ADX Downtrend 14
-10 Days Historical Downtrend
-RSI Tendencies
-MACD Upwards
-Higher Price Resistance Trend SAR
-5 Days Historical Sideways
 RSI Overbought
-Lower Price Support Trend SAR
+Volume Suppport Trend
+Higher Price Resistance Trend SAR
+ADX Uptrend 14
+Aroon Down
+MACD Upwards
+Aroon Up
+ADX Downtrend 14
+Volume Resistance Trend
+5 Days Historical Downtrend
+MACD Downwards
+Change Price Support Trend SAR
+5 Days Historical Sideways
+10 Days Historical Downtrend
+MACD Sideways
+Lower Price Resistance Trend SAR
+RSI Tendencies
+10 Days Historical AD Sideways
+Aaron
+ADX Weaktrend 14
+5 Days Historical AD Uptrend
+10 Days Historical AD Uptrend
+5 Days Historical AD Sideways
+Change Price Resistance Trend SAR
+10 Days Historical AD Downtrend
+5 Days Historical AD Downtrend
 Higher Price Support Trend SAR
+10 Days Historical Sideways
+Lower Price Support Trend SAR
+Price Support Trend
+RSI Oversold

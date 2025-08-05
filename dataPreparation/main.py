@@ -22,7 +22,7 @@ def download_stock_data(emiten, start_date, end_date):
         pd.DataFrame: A DataFrame containing the historical stock data.
     """    
     # Download data from Yahoo Finance, appending '.JK' for the Jakarta Stock Exchange.
-    session = requests.Session(impersonate="chrome")
+    session = requests.Session(impersonate="chrome123")
     ticker = yf.Ticker(emiten, session=session)
 
     if start_date == '' and end_date == '':
