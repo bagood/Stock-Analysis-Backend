@@ -243,3 +243,86 @@ def prepare_data_for_modelling(emiten: str, start_date: str, end_date: str, targ
 
     logging.info(f"--- Data Preparation Pipeline for {emiten} Finished Successfully ---")
     return data
+
+
+def _prepare_data_for_forecasting(emiten: str, start_date: str, end_date: str, rolling_window: int, download: bool = True):
+    """
+    Orchestrates the data preparation pipeline for making forecasts using the developed machine learning model.
+
+    This function serves as the helper, executing a sequence of steps:
+    1. Downloads or loads historical stock data.
+    2. Generates a comprehensive set of technical indicators to be used as model features.
+    3. Gets the tail of the data for the forecasting data
+
+    Args:
+        emiten (str): The stock ticker symbol.
+        start_date (str): The start date for the data ('YYYY-MM-DD').
+        end_date (str): The end date for the data ('YYYY-MM-DD').
+        rolling_window (int): An integers for the future trend windows, correlates with the total of forecasting data
+        download (bool): If True, downloads data from Yahoo Finance. If False, loads a local dummy file.
+
+    Returns:
+        pd.DataFrame: A clean, feature-rich DataFrame ready for model training and evaluation.
+    """
+    # --- Step 1: Load Raw Data ---
+    if download:
+        data = download_stock_data(emiten, start_date, end_date)
+    else:
+        logging.info("Loading data from local 'dummy_data.csv' file.")
+        data = pd.read_csv('dataPreparation/dummy_data.csv')
+    
+    if data is None or data.empty:
+        logging.error("Data loading failed. Aborting pipeline.")
+        return pd.DataFrame() # Return empty DataFrame on failure
+
+    # --- Step 2: Generate Features (Technical Indicators) ---
+    logging.info("Generating technical indicators as features...")
+    data = generate_all_technical_indicators(data)
+    logging.info(f"Data shape after adding indicators: {data.shape}")
+
+    # --- Step 3: Final Cleaning ---
+    # Select the rolling_window amount from the tail of the data
+    logging.info("Dropping all rows without any NaN values to create a clean forecasting dataset.")
+    forecasting_data = data.tail(rolling_window)
+
+    return forecasting_data
+
+def prepare_data_for_forecasting(list_of_emitens: list, start_date: str, end_date: str, rolling_window: int, download: bool = True):
+    """
+    Orchestrates the full data preparation pipeline for making forecasts using the developed machine learning model.
+
+    Args:
+        emiten (str): The stock ticker symbol.
+        start_date (str): The start date for the data ('YYYY-MM-DD').
+        end_date (str): The end date for the data ('YYYY-MM-DD').
+        rolling_window (int): An integers for the future trend windows, correlates with the total of forecasting data
+        download (bool): If True, downloads data from Yahoo Finance. If False, loads a local dummy file.
+
+    Returns:
+        pd.DataFrame: A clean, feature-rich DataFrame ready for model training and evaluation.
+    """
+    logging.info(f"--- Starting Data Preparation Pipeline for {len(list_of_emitens)} Tickers ---")
+    # Creates an empty dataframe to store all emitens' forecast data
+    all_emiten_data = pd.DataFrame()
+
+    # Calculate the total of stocks failed in being processed
+    total_failed_stocks = 0
+
+    # Iterate over each emiten to acquire the forecast data
+    for emiten in list_of_emitens:
+        try:
+            logging.info(f"--- Starting Data Preparation Pipeline for Ticker: {emiten} ---")
+            emiten_data = _prepare_data_for_forecasting(emiten, start_date, end_date, rolling_window, download)
+            
+            # Added the kode for the emiten on the data
+            emiten_data['Kode'] = emiten
+
+            # Combine the current forecasting data with the other forecasting data
+            all_emiten_data = pd.concat((all_emiten_data, emiten_data))
+            logging.info(f"--- Data Preparation Pipeline for {emiten} Finished Successfully ---")
+        except:
+            total_failed_stocks += 1
+            logging.info(f"--- Data Preparation Pipeline for {emiten} Failed ---")
+
+    logging.info(f"--- Succesfully Prepare the Forecasting Data for {len(list_of_emitens) - total_failed_stocks} out of {len(list_of_emitens)} Stocks ---")
+    return all_emiten_data
