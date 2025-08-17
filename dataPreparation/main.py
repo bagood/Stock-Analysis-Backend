@@ -4,6 +4,7 @@ import pandas as pd
 import yfinance as yf
 from datetime import datetime
 from curl_cffi import requests
+from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 
 # This script assumes the existence of a 'technicalIndicators' module
@@ -120,8 +121,11 @@ def _generate_linreg_gradient(target_data: np.array):
     model = LinearRegression(fit_intercept=False)
     model.fit(X, y)
 
+    y_pred = model.predict(X)
+    r2 = r2_score(y, y_pred)
+
     # The model's coefficient is the calculated slope of the trend line.
-    return model.coef_[0]
+    return model.coef_[0], r2
 
 def _bin_linreg_gradients(val: float):
     """
@@ -163,28 +167,35 @@ def generate_all_linreg_gradients(data: pd.DataFrame, target_column: str, rollin
         pd.DataFrame: The DataFrame with the new future trend column added.
     """
     logging.info(f"Generating future trend labels for a {rolling_window}-day window using '{target_column}' column.")
-    column_name = f'Upcoming {rolling_window} Days Trend'
+    column_name_gradients = f'Upcoming {rolling_window} Days Trend'
+    column_name_r2 = f'Upcoming {rolling_window} Days Trend RSquared'
     
     # Extract the target data series into a numpy array for efficient processing.
     target_data = data[target_column].values
 
     # Calculate the gradient for each rolling window of *future* data using a list comprehension.
     # For each day `i`, it looks at the slice from `i+1` to `i+1+rolling_window`.
-    linreg_gradients = [
+    linreg = np.array([
         _generate_linreg_gradient(target_data[i+1 : i+1+rolling_window])
         for i in range(len(target_data) - rolling_window)
-    ]
+    ])
 
+    linreg_gradients = linreg[:, 0].tolist()
+    linreg_r2 = linreg[:, 1].tolist()
+    
     # The trend cannot be calculated for the last `rolling_window` days of the dataset,
     # as there isn't enough future data. We pad the end of the list with NaNs.
     padding = [np.nan] * rolling_window
     full_gradient_list = linreg_gradients + padding
+    full_r2_list = linreg_r2 + padding
 
     # Add the binned trend labels to the DataFrame.
-    data[column_name] = full_gradient_list
-    data[column_name] = data[column_name].apply(_bin_linreg_gradients)
+    data[column_name_gradients] = full_gradient_list
+    data[column_name_gradients] = data[column_name_gradients].apply(_bin_linreg_gradients)
+    data[column_name_r2] = full_r2_list
     
-    logging.info(f"Finished generating trend labels. Added column: '{column_name}'.")
+    logging.info(f"Finished generating trend labels. Added column: '{column_name_gradients}'.")
+    logging.info(f"Finished generating trend fit. Added column: '{column_name_r2}'.")
     return data
 
 def prepare_data_for_modelling(emiten: str, start_date: str, end_date: str, target_column: str, rolling_windows: list, download: bool = True):

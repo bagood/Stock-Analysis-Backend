@@ -124,7 +124,7 @@ def initialize_and_fit_model(train_feature: np.array, train_target: np.array, pr
     hyper_tune_search = BayesSearchCV(
         estimator=model,
         search_spaces=search_spaces,
-        n_iter=10,                  # Number of parameter combinations to try.
+        n_iter=100,                  # Number of parameter combinations to try.
         cv=predefined_split_index,  # Our custom time-series cross-validation split.
         scoring=scoring_method,
         n_jobs=-1,                  # Use all available CPU cores.

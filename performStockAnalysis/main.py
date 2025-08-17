@@ -289,8 +289,8 @@ def make_forecasts_using_the_developed_models(forecast_dd: int, development_date
 
     logging.info('Starting the forecasting using the loaded models on the loaded forecasting data.')
     # Iterate over each row, get the model according to the kode, and make predictions
-    forecasting_data[f'Forecast - Upcoming {forecast_dd} Days Trend'] = forecasting_data.apply(
-        lambda row: model_store[row['Kode']].predict(row[feature_columns].values.reshape(1, -1))[0]
+    forecasting_data[f'Forecast {forecast_dd} Up Days Trend'] = forecasting_data.apply(
+        lambda row: model_store[row['Kode']].predict_proba(row[feature_columns].values.reshape(1, -1))[:, np.where(model_store[row['Kode']].classes_ == 'Up Trend')[0][0]][0]
                     if row['Kode'] in model_store else np.nan,
         axis=1
     )
@@ -299,7 +299,7 @@ def make_forecasts_using_the_developed_models(forecast_dd: int, development_date
     logging.info(f'Saving the forecast data to {forecast_path}')
 
     # Save the selected columns of the forecasting data
-    selected_columns = ['Kode', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume', f'Forecast - Upcoming {forecast_dd} Days Trend']
+    selected_columns = ['Kode', 'Date', 'Open', 'High', 'Low', 'Close', 'Volume', f'Forecast {forecast_dd} Up Days Trend']
     forecasting_data[selected_columns].to_csv(forecast_path, index=False)
 
     logging.info(f"--- Finished the Process of {forecast_dd} Days Forecasting ---")
