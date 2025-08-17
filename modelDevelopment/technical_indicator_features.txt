@@ -1,34 +1,39 @@
-10 Days Historical AD Downtrend
-10 Days Historical AD Sideways
-10 Days Historical AD Uptrend
-10 Days Historical Downtrend
-10 Days Historical Sideways
-10 Days Historical Uptrend
-5 Days Historical AD Downtrend
-5 Days Historical AD Sideways
-5 Days Historical AD Uptrend
-5 Days Historical Downtrend
-5 Days Historical Sideways
-5 Days Historical Uptrend
-ADX Downtrend 14
-ADX Uptrend 14
-ADX Weaktrend 14
-Aaron
+ATR Stop
+Accumulation Distribution Line
+Accumulation Distribution Line Moving Average
 Aroon Down
 Aroon Up
-Change Price Resistance Trend SAR
-Change Price Support Trend SAR
-Higher Price Resistance Trend SAR
-Higher Price Support Trend SAR
-Lower Price Resistance Trend SAR
-Lower Price Support Trend SAR
-MACD Downwards
-MACD Sideways
-MACD Upwards
-Price Resistance Trend
-Price Support Trend
-RSI Overbought
-RSI Oversold
-RSI Tendencies
-Volume Resistance Trend
-Volume Suppport Trend
+Average Directional Index
+Average Directional Index Rating
+Bear Power
+Bull Power
+Buy Stop
+Chaikin Money Flow
+Fisher Transform
+Fisher Transform Trigger
+Histogram MACD
+Minus Directional Index
+Money Flow Index
+Money Flow Multiplier ADL
+Money Flow Multiplier CMF
+Money Flow Volume ADL
+Money Flow Volume CMF
+On Balance Volume
+On Balance Volume Moving Average
+Oscillator
+Percent Stochastic Oscilator
+Percentage Bollinger
+Plus Directional Index
+Relative Strength Index
+Retrace High
+Retrace Low
+Sell Stop
+Signal Stochastic Oscilator
+Stochastic Oscilator
+Width Bollinger
+Width Donchian
+Width Keltner
+Z Score Bollinger
+Zig Zag
+Zig Zag High
+Zig Zag Low

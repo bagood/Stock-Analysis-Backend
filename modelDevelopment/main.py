@@ -7,8 +7,6 @@ from catboost import CatBoostClassifier
 from sklearn.model_selection import PredefinedSplit
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score
 
-# --- Logging Configuration ---
-# Configure the logger for clear, informative output during the model development process.
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -17,13 +15,12 @@ logging.basicConfig(
 
 def split_data_to_train_val_test(data: pd.DataFrame, feature_columns: list, target_column: str):
     """
-    Splits time-series data into training, testing, and forecasting sets.
+    Splits time-series data into training and testing sets.
 
     This function implements a time-based split crucial for financial forecasting:
     - Test Set: The most recent 30 days of data with valid targets.
     - Training Set: All data preceding the test set.
     - Validation Set (for Hyperparameter Tuning): The last 30 days of the training set.
-    - Forecast Set: Data points at the end of the series where the target is unknown (NaN).
 
     Args:
         data (pd.DataFrame): The complete DataFrame containing features and the target.
@@ -38,43 +35,27 @@ def split_data_to_train_val_test(data: pd.DataFrame, feature_columns: list, targ
                - test_target (np.array): Target for the test set.
                - predefined_split_index (PredefinedSplit): An index for cross-validation
                  that designates the last 30 days of training data as the validation set.
-               - forecast_feature (np.array): Features for making future predictions.
     """
     logging.info("Splitting data into training, validation, testing, and forecast sets.")
 
-    # Determine the number of rows at the end that have no target value.
-    forecast_length = data[target_column].isna().sum()
-    logging.info(f"Found {forecast_length} data points for future forecasting.")
-
-    # Define the split point for the main training set.
-    train_length = len(data) - 30 - forecast_length
+    train_length = len(data) - 30
     logging.info(f"Training set size: {train_length}, Test set size: 30.")
 
-    # Slice the DataFrame into the respective sets.
     train_data = data.head(train_length)
-    test_data = data.tail(30 + forecast_length).head(30)
-    forecast_data = data.tail(forecast_length)
-
-    # Extract feature and target numpy arrays for each set.
+    test_data = data.tail(30)
+    
     train_feature = train_data[feature_columns].values
     train_target = train_data[target_column].values
     test_feature = test_data[feature_columns].values
     test_target = test_data[target_column].values
-    forecast_feature = forecast_data[feature_columns].values
+    logging.info("Succesfully splitted the data into training and testing sets")
 
-    # --- Create PredefinedSplit for Time-Series Cross-Validation ---
-    # This is a crucial step for hyperparameter tuning on time-series data.
-    # It ensures that we validate our model on the most recent portion of the
-    # training data, simulating a real-world forecasting scenario.
-    # We create an index where:
-    # -1 indicates a sample is for training.
-    #  0 indicates a sample is for validation/testing.
     split_index = np.full(len(train_feature), -1, dtype=int)
-    split_index[-30:] = 0  # Mark the last 30 days of the training set as the validation fold.
+    split_index[-30:] = 0
     predefined_split_index = PredefinedSplit(test_fold=split_index)
-    logging.info("Created PredefinedSplit for time-series cross-validation.")
+    logging.info("Sucessfully created PredefinedSplit for time-series cross-validation.")
 
-    return train_feature, train_target, test_feature, test_target, predefined_split_index, forecast_feature
+    return train_feature, train_target, test_feature, test_target, predefined_split_index
 
 def initialize_and_fit_model(train_feature: np.array, train_target: np.array, predefined_split_index: PredefinedSplit):
     """
@@ -95,54 +76,44 @@ def initialize_and_fit_model(train_feature: np.array, train_target: np.array, pr
     """
     logging.info("Initializing CatBoost model and starting hyperparameter tuning with BayesSearchCV.")
 
-    # Initialize the CatBoost Classifier with baseline settings.
     model = CatBoostClassifier(
-        loss_function='Logloss',  # Standard loss function for binary classification.
-        eval_metric='AUC',        # Area Under Curve is a robust metric for evaluation.
-        random_seed=42,           # For reproducibility.
-        logging_level='Silent'    # Suppresses CatBoost's verbose output during search.
+        loss_function='Logloss',
+        eval_metric='AUC',
+        logging_level='Silent'
     )
 
-    # Define the hyperparameter search space for Bayesian optimization.
-    # We use both Integer and Real spaces for different parameter types.
     search_spaces = {
-        'depth': Integer(1, 5),                                # Max depth of the trees.
-        'learning_rate': Real(0.01, 0.1, prior='log-uniform'), # Controls the step size.
-        'iterations': Integer(150, 300),                       # Number of trees to build.
-        'l2_leaf_reg': Real(0.5, 3.0)                          # L2 regularization strength.
+        'depth': Integer(1, 5),
+        'learning_rate': Real(0.01, 0.1, prior='log-uniform'),
+        'iterations': Integer(150, 300),
+        'l2_leaf_reg': Real(0.5, 3.0)
     }
     logging.info(f"Hyperparameter search space defined: {search_spaces}")
-
-    # Dynamically choose the scoring method. If the validation set has only one class,
-    # ROC AUC is undefined, so we fall back to accuracy.
+ 
     scoring_method = 'roc_auc'
     if len(np.unique(train_target[-30:])) == 1:
         scoring_method = 'accuracy'
     logging.info(f"Using '{scoring_method}' as the scoring metric for hyperparameter tuning.")
 
-    # Set up the Bayesian Search with our model, search space, and time-series CV.
     hyper_tune_search = BayesSearchCV(
         estimator=model,
         search_spaces=search_spaces,
-        n_iter=10,                  # Number of parameter combinations to try.
-        cv=predefined_split_index,  # Our custom time-series cross-validation split.
+        n_iter=25,
+        cv=predefined_split_index,
         scoring=scoring_method,
-        n_jobs=-1,                  # Use all available CPU cores.
-        random_state=42,
+        n_jobs=-1,
         verbose=0
     )
 
-    # Run the search to find the best hyperparameters.
     logging.info("Fitting BayesSearchCV... This may take some time.")
     hyper_tune_search.fit(train_feature, train_target)
     logging.info("Hyperparameter tuning complete.")
 
-    # Log the results of the search.
     logging.info(f"Best parameters found: {hyper_tune_search.best_params_}")
     logging.info(f"Best cross-validated {scoring_method}: {hyper_tune_search.best_score_:.4f}")
 
-    # The best model is automatically refitted on the entire training data.
     best_model = hyper_tune_search.best_estimator_
+
     return best_model
 
 def calculate_classification_metrics(target_true: np.array, target_pred: np.array):
@@ -157,12 +128,11 @@ def calculate_classification_metrics(target_true: np.array, target_pred: np.arra
         tuple: A tuple containing accuracy, precision for both classes, and recall for both classes.
     """
     accuracy = accuracy_score(target_true, target_pred)
-    # Calculate precision for each class separately.
     precision_up_trend = precision_score(target_true, target_pred, pos_label='Up Trend', zero_division=0)
     precision_down_trend = precision_score(target_true, target_pred, pos_label='Down Trend', zero_division=0)
-    # Calculate recall for each class separately.
     recall_up_trend = recall_score(target_true, target_pred, pos_label='Up Trend', zero_division=0)
     recall_down_trend = recall_score(target_true, target_pred, pos_label='Down Trend', zero_division=0)
+
     return accuracy, precision_up_trend, precision_down_trend, recall_up_trend, recall_down_trend
 
 def calculate_gini(target_true: np.array, target_pred_proba: np.array):
@@ -181,15 +151,13 @@ def calculate_gini(target_true: np.array, target_pred_proba: np.array):
         float: The calculated Gini coefficient, or 0.0 if AUC cannot be calculated.
     """
     try:
-        # The positive class ('Up Trend') is typically the second column.
-        # We need to find its index to correctly calculate AUC.
         positive_class_index = np.where(np.unique(target_true) == 'Up Trend')[0][0]
         auc = roc_auc_score(target_true, target_pred_proba[:, positive_class_index])
         gini = 2 * auc - 1
     except (ValueError, IndexError):
-        # Handle cases where AUC cannot be computed (e.g., only one class present).
         logging.warning("Could not calculate Gini coefficient (likely only one class in target). Returning 0.0.")
         gini = 0.0
+
     return gini
 
 def _measure_model_performance(model, feature: np.array, target: np.array, dataset_name: str):
@@ -206,16 +174,12 @@ def _measure_model_performance(model, feature: np.array, target: np.array, datas
         dict: A dictionary containing all calculated performance metrics.
     """
     logging.info(f"Evaluating model performance on the {dataset_name} set.")
-    # Get the model's class predictions and probability predictions.
     target_pred = model.predict(feature)
     target_pred_proba = model.predict_proba(feature)
 
-    # Calculate standard classification metrics.
     accuracy, prec_up, prec_down, rec_up, rec_down = calculate_classification_metrics(target, target_pred)
-    # Calculate the Gini coefficient.
     gini = calculate_gini(target, target_pred_proba)
 
-    # Compile all metrics into a dictionary for easy reporting.
     all_metrics = {
         'Accuracy': [accuracy],
         'Precision Up Trend': [prec_up],
@@ -225,6 +189,7 @@ def _measure_model_performance(model, feature: np.array, target: np.array, datas
         'Gini': [gini]
     }
     logging.info(f"{dataset_name} Set Performance - Accuracy: {accuracy:.4f}, Gini: {gini:.4f}")
+
     return all_metrics
 
 def measure_model_performance(model, train_feature: np.array, train_target: np.array, test_feature: np.array, test_target: np.array):
@@ -243,7 +208,6 @@ def measure_model_performance(model, train_feature: np.array, train_target: np.a
     Returns:
         tuple: A tuple of dictionaries containing metrics for the training and testing sets.
     """
-    # Calculate performance metrics for both sets using the helper function.
     train_metrics = _measure_model_performance(model, train_feature, train_target, "Training")
     test_metrics = _measure_model_performance(model, test_feature, test_target, "Testing")
     return train_metrics, test_metrics
@@ -267,25 +231,16 @@ def develop_model(prepared_data: pd.DataFrame, target_column: str):
     """
     logging.info(f"--- Starting Model Development for Target: '{target_column}' ---")
 
-    # --- Step 1: Load Feature Names ---
     feature_file = 'modelDevelopment/technical_indicator_features.txt'
-    try:
-        logging.info(f"Loading feature names from '{feature_file}'.")
-        with open(feature_file, "r") as file:
-            feature_columns = [line.strip() for line in file]
-        logging.info(f"Loaded {len(feature_columns)} features.")
-    except FileNotFoundError:
-        logging.error(f"Feature file not found at '{feature_file}'. Aborting.")
-        return None, None, None
+    logging.info(f"Loading feature names from '{feature_file}'.")
+    with open(feature_file, "r") as file:
+        feature_columns = [line.strip() for line in file]
 
-    # --- Step 2: Split Data ---
-    train_feature, train_target, test_feature, test_target, cv_split, _ = \
+    train_feature, train_target, test_feature, test_target, cv_split = \
         split_data_to_train_val_test(prepared_data, feature_columns, target_column)
 
-    # --- Step 3: Initialize, Tune, and Fit Model ---
     model = initialize_and_fit_model(train_feature, train_target, cv_split)
 
-    # --- Step 4: Evaluate Final Model ---
     train_metrics, test_metrics = measure_model_performance(
         model, train_feature, train_target, test_feature, test_target
     )
