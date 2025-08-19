@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 # These are assumed to be helper functions from your project structure.
-from technicalIndicators.helpersFunctions.main import backfill_inf_values, scale_indicators
+from oldTechnicalIndicators.helpersFunctions.main import backfill_inf_values, scale_indicators
 
 def _calculate_average_true_range(row):
     """

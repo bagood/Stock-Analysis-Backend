@@ -3,7 +3,7 @@ import pandas as pd
 
 # This script assumes the existence of a custom 'onBalanceVolume' module
 # which is used to identify initial price trends.
-import technicalIndicators.onBalanceVolume.main as obv
+import oldTechnicalIndicators.onBalanceVolume.main as obv
 
 def _group_support_resistance_trend(data):
     """

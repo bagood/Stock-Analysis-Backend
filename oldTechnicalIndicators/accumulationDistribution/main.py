@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 # These are assumed to be helper functions from your project structure.
-from technicalIndicators.helpersFunctions.main import retrieve_linreg_gradients, group_trends, scale_indicators
+from oldTechnicalIndicators.helpersFunctions.main import retrieve_linreg_gradients, group_trends, scale_indicators
 
 def _calculate_money_flow_multiplier(data):
     """

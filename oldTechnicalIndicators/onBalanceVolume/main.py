@@ -2,7 +2,7 @@ import numpy as np
 import scipy.signal as sp
 
 # These are assumed to be helper functions from your project structure.
-from technicalIndicators.helpersFunctions.main import retrieve_linreg_gradients, group_trends
+from oldTechnicalIndicators.helpersFunctions.main import retrieve_linreg_gradients, group_trends
 
 def _identify_general_peaks(price, peak_type, peak_distance, peak_rank_width):
     """
