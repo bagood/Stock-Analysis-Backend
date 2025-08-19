@@ -13,14 +13,14 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
-def split_data_to_train_val_test(data: pd.DataFrame, feature_columns: list, target_column: str):
+def split_data_to_train_val_test(data: pd.DataFrame, feature_columns: list, target_column: str) -> (np.array, np.array, np.array, np.array, PredefinedSplit):
     """
-    Splits time-series data into training and testing sets.
+    Splits time-series data into training, validation, and testing sets.
 
     This function implements a time-based split crucial for financial forecasting:
-    - Test Set: The most recent 30 days of data with valid targets.
     - Training Set: All data preceding the test set.
     - Validation Set (for Hyperparameter Tuning): The last 30 days of the training set.
+    - Test Set: The most recent 30 days of data with valid targets.
 
     Args:
         data (pd.DataFrame): The complete DataFrame containing features and the target.
@@ -36,19 +36,16 @@ def split_data_to_train_val_test(data: pd.DataFrame, feature_columns: list, targ
                - predefined_split_index (PredefinedSplit): An index for cross-validation
                  that designates the last 30 days of training data as the validation set.
     """
-    logging.info("Splitting data into training, validation, testing, and forecast sets.")
-
     train_length = len(data) - 30
-    logging.info(f"Training set size: {train_length}, Test set size: 30.")
-
     train_data = data.head(train_length)
     test_data = data.tail(30)
-    
+    logging.info(f"Training set size: {train_length}, Test set size: 30.")
+
     train_feature = train_data[feature_columns].values
     train_target = train_data[target_column].values
     test_feature = test_data[feature_columns].values
     test_target = test_data[target_column].values
-    logging.info("Succesfully splitted the data into training and testing sets")
+    logging.info("Succesfully splitted both training and testing data into its corresponding feature and target data")
 
     split_index = np.full(len(train_feature), -1, dtype=int)
     split_index[-30:] = 0
@@ -57,7 +54,7 @@ def split_data_to_train_val_test(data: pd.DataFrame, feature_columns: list, targ
 
     return train_feature, train_target, test_feature, test_target, predefined_split_index
 
-def initialize_and_fit_model(train_feature: np.array, train_target: np.array, predefined_split_index: PredefinedSplit):
+def initialize_and_fit_model(train_feature: np.array, train_target: np.array, predefined_split_index: PredefinedSplit) -> any:
     """
     Initializes, tunes, and fits a CatBoost Classifier using Bayesian Optimization.
 
@@ -74,8 +71,6 @@ def initialize_and_fit_model(train_feature: np.array, train_target: np.array, pr
     Returns:
         CatBoostClassifier: The best-performing model found by the search.
     """
-    logging.info("Initializing CatBoost model and starting hyperparameter tuning with BayesSearchCV.")
-
     model = CatBoostClassifier(
         loss_function='Logloss',
         eval_metric='AUC',
@@ -116,9 +111,9 @@ def initialize_and_fit_model(train_feature: np.array, train_target: np.array, pr
 
     return best_model
 
-def calculate_classification_metrics(target_true: np.array, target_pred: np.array):
+def _calculate_classification_metrics(target_true: np.array, target_pred: np.array) -> (np.array, np.array, np.array, np.array):
     """
-    Calculates key classification metrics for a binary prediction task.
+    (Internal Helper) Calculates key classification metrics for a binary prediction task.
 
     Args:
         target_true (np.array): The ground truth labels.
@@ -135,9 +130,9 @@ def calculate_classification_metrics(target_true: np.array, target_pred: np.arra
 
     return accuracy, precision_up_trend, precision_down_trend, recall_up_trend, recall_down_trend
 
-def calculate_gini(target_true: np.array, target_pred_proba: np.array):
+def _calculate_gini(target_true: np.array, target_pred_proba: np.array) -> float:
     """
-    Calculates the Gini coefficient from the model's prediction probabilities.
+    (Internal Helper) Calculates the Gini coefficient from the model's prediction probabilities.
 
     The Gini coefficient is a common metric for evaluating binary classification
     models and is derived from the Area Under the ROC Curve (AUC).
@@ -160,9 +155,9 @@ def calculate_gini(target_true: np.array, target_pred_proba: np.array):
 
     return gini
 
-def _measure_model_performance(model, feature: np.array, target: np.array, dataset_name: str):
+def measure_model_performance(model, feature: np.array, target: np.array, dataset_name: str) -> dict:
     """
-    (Internal Helper) Measures and reports the performance of the model on a given dataset.
+    Measures and reports the performance of the model on a given dataset.
 
     Args:
         model: The trained classifier model.
@@ -177,8 +172,8 @@ def _measure_model_performance(model, feature: np.array, target: np.array, datas
     target_pred = model.predict(feature)
     target_pred_proba = model.predict_proba(feature)
 
-    accuracy, prec_up, prec_down, rec_up, rec_down = calculate_classification_metrics(target, target_pred)
-    gini = calculate_gini(target, target_pred_proba)
+    accuracy, prec_up, prec_down, rec_up, rec_down = _calculate_classification_metrics(target, target_pred)
+    gini = _calculate_gini(target, target_pred_proba)
 
     all_metrics = {
         'Accuracy': [accuracy],
@@ -192,27 +187,7 @@ def _measure_model_performance(model, feature: np.array, target: np.array, datas
 
     return all_metrics
 
-def measure_model_performance(model, train_feature: np.array, train_target: np.array, test_feature: np.array, test_target: np.array):
-    """
-    Evaluates and prints the model's performance on both training and testing data.
-
-    This function provides a comprehensive view of the model's effectiveness by showing
-    how it performs on the data it was trained on versus new, unseen data. This is
-    essential for assessing potential overfitting.
-
-    Args:
-        model: The trained classifier model.
-        train_feature, train_target: The training data.
-        test_feature, test_target: The testing data.
-
-    Returns:
-        tuple: A tuple of dictionaries containing metrics for the training and testing sets.
-    """
-    train_metrics = _measure_model_performance(model, train_feature, train_target, "Training")
-    test_metrics = _measure_model_performance(model, test_feature, test_target, "Testing")
-    return train_metrics, test_metrics
-
-def develop_model(prepared_data: pd.DataFrame, target_column: str):
+def develop_model(prepared_data: pd.DataFrame, target_column: str) -> (any, dict, dict):
     """
     Main orchestration function for the entire model development process.
 
@@ -229,21 +204,25 @@ def develop_model(prepared_data: pd.DataFrame, target_column: str):
                - train_metrics (dict): Performance metrics on the training set.
                - test_metrics (dict): Performance metrics on the testing set.
     """
-    logging.info(f"--- Starting Model Development for Target: '{target_column}' ---")
+    logging.info(f"Starting Model Development for Target: '{target_column}'")
 
     feature_file = 'modelDevelopment/technical_indicator_features.txt'
     logging.info(f"Loading feature names from '{feature_file}'.")
     with open(feature_file, "r") as file:
         feature_columns = [line.strip() for line in file]
 
-    train_feature, train_target, test_feature, test_target, cv_split = \
-        split_data_to_train_val_test(prepared_data, feature_columns, target_column)
+    logging.info("Splitting data into training, validation, testing, and forecast sets.")
+    train_feature, train_target, test_feature, test_target, cv_split = split_data_to_train_val_test(prepared_data, feature_columns, target_column)
 
+    logging.info("Initializing CatBoost model and starting hyperparameter tuning with BayesSearchCV")
     model = initialize_and_fit_model(train_feature, train_target, cv_split)
 
-    train_metrics, test_metrics = measure_model_performance(
-        model, train_feature, train_target, test_feature, test_target
-    )
+    logging.info("Measuring model performance for training data")
+    train_metrics = measure_model_performance(model, train_feature, train_target, 'Training')
 
-    logging.info(f"--- Model Development for '{target_column}' Finished Successfully ---")
+    logging.info("Measuring model performance for testing data")
+    test_metrics = measure_model_performance(model, test_feature, test_target, 'Testing')
+
+    logging.info(f"Model Development for '{target_column}' Finished Successfully")
+    
     return model, train_metrics, test_metrics

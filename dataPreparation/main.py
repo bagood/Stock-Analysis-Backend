@@ -96,7 +96,8 @@ def prepare_data_for_forecasting(list_of_emitens: list, start_date: str, end_dat
 
         forecasting_data['Kode'] = emiten
         all_forecasting_data = pd.concat((all_forecasting_data, forecasting_data))
-        
+    
+    all_forecasting_data.reset_index(inplace=True)    
     logging.info(f"Succesfully Prepare the Forecasting Data")
 
     return all_forecasting_data
