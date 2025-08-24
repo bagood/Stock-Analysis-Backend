@@ -60,7 +60,7 @@ def generate_all_technical_indicators(data: pd.DataFrame) -> pd.DataFrame:
     logging.info('Generating stock indicators of price trends')
     price_trends = [
         calculate_atr_trailing_stop(data, prepared_data),
-        calculate_aroon(data, prepared_data),
+        calculate_aroon(prepared_data),
         calculate_average_directional_index(prepared_data), 
         calculate_elder_ray_index(prepared_data), 
         calculate_moving_average_convergence_divergence(prepared_data)
@@ -68,9 +68,9 @@ def generate_all_technical_indicators(data: pd.DataFrame) -> pd.DataFrame:
 
     logging.info('Generating stock indicators of price channels')
     price_channels = [
-        calculate_keltner(prepared_data), 
-        calculate_donchian(prepared_data),
-        calculate_bollinger_bands(prepared_data)
+        calculate_keltner(data, prepared_data), 
+        calculate_donchian(data, prepared_data),
+        calculate_bollinger_bands(data, prepared_data)
     ]
 
     logging.info('Generating stock indicators of oscillators')

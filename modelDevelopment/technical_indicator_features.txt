@@ -7,11 +7,17 @@ Aroon Down Trend
 Aroon Up Trend
 Bear Power 80% Negatives
 Bear Power Trend
+Bollinger Overbought
+Bollinger Oversold
 Bull Power 80% Positives
 Bull Power Up Trend
 Chaikin Money Flow
+Donchian Overbought
+Donchian Oversold
 Fisher Transform
 Fisher Transform Trigger
+Keltner Overbought
+Keltner Oversold
 MACD Near 0
 MACD Non-Near 0 Negative
 MACD Non-Near 0 Positive
@@ -23,7 +29,6 @@ Money Flow Volume CMF
 On Balance Volume
 On Balance Volume Moving Average
 Percent Stochastic Oscilator
-Percentage Bollinger
 Relative Strength Index
 Retrace High
 Retrace Low
@@ -33,10 +38,12 @@ Strong Minus Directional Index
 Strong Plus Directional Index
 Weak Minus Directional Index
 Weak Plus Directional Index
-Width Bollinger
-Width Donchian
-Width Keltner
-Z Score Bollinger
+Width Bollinger Decreasing
+Width Bollinger Increasing
+Width Donchian Decreasing
+Width Donchian Increasing
+Width Keltner Decreasing
+Width Keltner Increasing
 Zig Zag
 Zig Zag High
 Zig Zag Low

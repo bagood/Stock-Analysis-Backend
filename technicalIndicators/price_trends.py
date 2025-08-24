@@ -21,7 +21,7 @@ def calculate_atr_trailing_stop(data, prepared_data):
 
     return result_df.set_index('Date')
 
-def calculate_aroon(data, prepared_data):
+def calculate_aroon(prepared_data):
     result = indicators.get_aroon(prepared_data)
     result_df = pd.DataFrame({
         'Date': [val.date for val in result],
