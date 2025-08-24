@@ -28,12 +28,12 @@ Money Flow Volume ADL
 Money Flow Volume CMF
 On Balance Volume
 On Balance Volume Moving Average
-Percent Stochastic Oscilator
-Relative Strength Index
+RSI Down Trend
+RSI Up Trend
 Retrace High
 Retrace Low
-Signal Stochastic Oscilator
-Stochastic Oscilator
+Stochastic Oscillator Overbought
+Stochastic Oscillator Oversold
 Strong Minus Directional Index
 Strong Plus Directional Index
 Weak Minus Directional Index
