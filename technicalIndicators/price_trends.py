@@ -8,16 +8,14 @@ def calculate_atr_trailing_stop(data, prepared_data):
     result = indicators.get_atr_stop(prepared_data)
     result_df = pd.DataFrame({
         'Date': [val.date for val in result],
-        'ATR Stop': [val.atr_stop if val.atr_stop != None else np.nan for val in result],
-        'Buy Stop': [val.buy_stop for val in result],
-        'Sell Stop': [val.sell_stop for val in result]
+        'ATR Stop': [val.atr_stop if val.atr_stop != None else np.nan for val in result]
     })
 
     result_df['ATR Bullish'] = (result_df['ATR Stop'].values >= data['Close'].values).astype(int)
     result_df['ATR Bearish'] = (result_df['ATR Stop'].values < data['Close'].values).astype(int)
     result_df.dropna(subset='ATR Stop', inplace=True)
 
-    result_df.drop(columns=['ATR Stop', 'Buy Stop', 'Sell Stop'], inplace=True)    
+    result_df.drop(columns=['ATR Stop'], inplace=True)    
 
     return result_df.set_index('Date')
 
@@ -26,8 +24,7 @@ def calculate_aroon(prepared_data):
     result_df = pd.DataFrame({
         'Date': [val.date for val in result],
         'Aroon Up': [val.aroon_up for val in result],
-        'Aroon Down': [val.aroon_down for val in result],
-        'Oscillator': [val.oscillator for val in result]
+        'Aroon Down': [val.aroon_down for val in result]
     })
 
     result_df.dropna(subset=['Aroon Up'], inplace=True)
@@ -36,7 +33,7 @@ def calculate_aroon(prepared_data):
     result_df['Aroon Up Trend'] = (result_df['Aroon Up'].values >= 70).astype(int)
     result_df['Aroon Down Trend'] = (result_df['Aroon Down'].values >= 70).astype(int)
 
-    result_df.drop(columns=['Aroon Up', 'Aroon Down', 'Oscillator'], inplace=True)
+    result_df.drop(columns=['Aroon Up', 'Aroon Down'], inplace=True)
 
     return result_df.set_index('Date')
 
@@ -45,9 +42,7 @@ def calculate_average_directional_index(prepared_data):
     result_df = pd.DataFrame({
         'Date': [val.date for val in result],
         'Plus Directional Index': [val.pdi for val in result],  
-        'Minus Directional Index': [val.mdi for val in result],
-        'Average Directional Index': [val.adx for val in result],
-        'Average Directional Index Rating': [val.adxr for val in result]
+        'Minus Directional Index': [val.mdi for val in result]
     })
 
     result_df.dropna(subset=['Plus Directional Index', 'Minus Directional Index'], inplace=True)
@@ -56,7 +51,7 @@ def calculate_average_directional_index(prepared_data):
     result_df['Weak Minus Directional Index'] = (result_df['Minus Directional Index'] <= 25).astype(int)
     result_df['Strong Minus Directional Index'] = (result_df['Minus Directional Index'] > 25).astype(int)
 
-    result_df.drop(columns=['Plus Directional Index', 'Minus Directional Index', 'Average Directional Index', 'Average Directional Index Rating'], inplace=True)
+    result_df.drop(columns=['Plus Directional Index', 'Minus Directional Index'], inplace=True)
 
     return result_df.set_index('Date')
 

@@ -24,7 +24,7 @@ def calculate_accumulation_distribution_line(prepared_data):
     result = indicators.get_adl(prepared_data, 10)
     result_df = pd.DataFrame({
         'Date': [val.date for val in result],
-        'Accumulation Distribution Line': [val.adl for val in result],
+        'Accumulation Distribution Line': np.array([val.adl for val in result]).astype(float),
     })
 
     result_df.dropna(subset=['Accumulation Distribution Line'], inplace=True)

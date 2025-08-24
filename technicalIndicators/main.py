@@ -95,10 +95,13 @@ def generate_all_technical_indicators(data: pd.DataFrame) -> pd.DataFrame:
 
     all_stock_indicators = price_trends + price_channels + oscillators + volume_based + price_transformations
     all_stock_indicators_data = data.join(all_stock_indicators)
-    logging.info('Successfullu generated all stock indicators')
+    all_stock_indicators_data.dropna(inplace=True)
+    logging.info('Successfully generated all stock indicators')
 
     updated_columns = set(all_stock_indicators_data.columns)
     feature_columns = sorted(list(updated_columns - original_columns))
+    for col in feature_columns:
+        all_stock_indicators_data[col] = all_stock_indicators_data[col].astype(int)
     logging.info(f'Acquired {len(feature_columns)} features for the stock data')
 
     output_path = 'modelDevelopment/technical_indicator_features.txt'

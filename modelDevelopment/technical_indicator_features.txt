@@ -14,8 +14,9 @@ Bull Power Up Trend
 Crossover CMF
 Donchian Overbought
 Donchian Oversold
-Fisher Transform
-Fisher Transform Trigger
+Fisher Down Trend
+Fisher Reversal
+Fisher Up trend
 Keltner Overbought
 Keltner Oversold
 MACD Near 0
@@ -31,8 +32,6 @@ On Balance Volume Increasing
 Positive CMF
 RSI Down Trend
 RSI Up Trend
-Retrace High
-Retrace Low
 Stochastic Oscillator Overbought
 Stochastic Oscillator Oversold
 Strong Minus Directional Index
@@ -47,6 +46,7 @@ Width Donchian Decreasing
 Width Donchian Increasing
 Width Keltner Decreasing
 Width Keltner Increasing
-Zig Zag
+Zig Zag Decreasing
 Zig Zag High
+Zig Zag Increasing
 Zig Zag Low
