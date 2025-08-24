@@ -59,8 +59,8 @@ def generate_all_technical_indicators(data: pd.DataFrame) -> pd.DataFrame:
 
     logging.info('Generating stock indicators of price trends')
     price_trends = [
-        calculate_atr_trailing_stop(prepared_data),
-        calculate_aroon(prepared_data),
+        calculate_atr_trailing_stop(data, prepared_data),
+        calculate_aroon(data, prepared_data),
         calculate_average_directional_index(prepared_data), 
         calculate_elder_ray_index(prepared_data), 
         calculate_moving_average_convergence_divergence(prepared_data)

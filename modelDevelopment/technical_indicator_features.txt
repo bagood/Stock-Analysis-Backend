@@ -1,18 +1,20 @@
-ATR Stop
+ATR Bearish
+ATR Bullish
 Accumulation Distribution Line
 Accumulation Distribution Line Moving Average
-Aroon Down
-Aroon Up
-Average Directional Index
-Average Directional Index Rating
-Bear Power
-Bull Power
-Buy Stop
+Aroon Change Position
+Aroon Down Trend
+Aroon Up Trend
+Bear Power 80% Negatives
+Bear Power Trend
+Bull Power 80% Positives
+Bull Power Up Trend
 Chaikin Money Flow
 Fisher Transform
 Fisher Transform Trigger
-Histogram MACD
-Minus Directional Index
+MACD Near 0
+MACD Non-Near 0 Negative
+MACD Non-Near 0 Positive
 Money Flow Index
 Money Flow Multiplier ADL
 Money Flow Multiplier CMF
@@ -20,16 +22,17 @@ Money Flow Volume ADL
 Money Flow Volume CMF
 On Balance Volume
 On Balance Volume Moving Average
-Oscillator
 Percent Stochastic Oscilator
 Percentage Bollinger
-Plus Directional Index
 Relative Strength Index
 Retrace High
 Retrace Low
-Sell Stop
 Signal Stochastic Oscilator
 Stochastic Oscilator
+Strong Minus Directional Index
+Strong Plus Directional Index
+Weak Minus Directional Index
+Weak Plus Directional Index
 Width Bollinger
 Width Donchian
 Width Keltner
