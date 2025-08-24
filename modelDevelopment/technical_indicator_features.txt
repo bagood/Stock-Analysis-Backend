@@ -1,7 +1,7 @@
 ATR Bearish
 ATR Bullish
-Accumulation Distribution Line
-Accumulation Distribution Line Moving Average
+Accumulation Distribution Line Decreasing
+Accumulation Distribution Line Increasing
 Aroon Change Position
 Aroon Down Trend
 Aroon Up Trend
@@ -11,7 +11,7 @@ Bollinger Overbought
 Bollinger Oversold
 Bull Power 80% Positives
 Bull Power Up Trend
-Chaikin Money Flow
+Crossover CMF
 Donchian Overbought
 Donchian Oversold
 Fisher Transform
@@ -21,13 +21,14 @@ Keltner Oversold
 MACD Near 0
 MACD Non-Near 0 Negative
 MACD Non-Near 0 Positive
-Money Flow Index
-Money Flow Multiplier ADL
-Money Flow Multiplier CMF
-Money Flow Volume ADL
-Money Flow Volume CMF
-On Balance Volume
-On Balance Volume Moving Average
+MFI Decreasing
+MFI Increasing
+MFI Overbought
+MFI Oversold
+Negative CMF
+On Balance Volume Decreasing
+On Balance Volume Increasing
+Positive CMF
 RSI Down Trend
 RSI Up Trend
 Retrace High
@@ -35,7 +36,9 @@ Retrace Low
 Stochastic Oscillator Overbought
 Stochastic Oscillator Oversold
 Strong Minus Directional Index
+Strong Negative CMF
 Strong Plus Directional Index
+Strong Positive CMF
 Weak Minus Directional Index
 Weak Plus Directional Index
 Width Bollinger Decreasing
