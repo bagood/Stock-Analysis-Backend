@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 
 from technicalIndicators.main import generate_all_technical_indicators
-from dataPreparation.helper import _download_stock_data, _generate_all_linreg_gradients
+from dataPreparation.helper import _download_stock_data, _generate_all_linreg_gradients, _generate_all_linreg_rsquared_score
 
 logging.basicConfig(
     level=logging.INFO,
@@ -10,7 +10,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
-def prepare_data_for_modelling(emiten: str, start_date: str, end_date: str, target_column: str, rolling_windows: list, download: bool = True) -> pd.DataFrame:
+def prepare_data_for_modelling_trend(emiten: str, start_date: str, end_date: str, target_column: str, rolling_windows: list, download: bool = True) -> pd.DataFrame:
     """
     Orchestrates the full data preparation pipeline for a machine learning model.
 
@@ -51,6 +51,43 @@ def prepare_data_for_modelling(emiten: str, start_date: str, end_date: str, targ
     
     logging.info('Dropping rows containing missing target variables')
     data.dropna(subset=[f'Upcoming {window} Days Trend' for window in rolling_windows], inplace=True)
+
+    logging.info(f"Succesfully Executed the Data Preparation Pipeline for {emiten}")
+
+    return data
+
+def prepare_data_for_modelling_strength(emiten: str, start_date: str, end_date: str, target_column: str, rolling_windows: list, download: bool = True) -> pd.DataFrame:
+    """
+    Args:
+        emiten (str): The stock ticker symbol.
+        start_date (str): The start date for the data ('YYYY-MM-DD').
+        end_date (str): The end date for the data ('YYYY-MM-DD').
+        target_column (str): The price column (e.g., 'Close') to use for trend calculation.
+        rolling_windows (list): A list of integers for the future trend windows (e.g., [5, 10]).
+        download (bool): If True, downloads data from Yahoo Finance. If False, loads a local dummy file.
+
+    Returns:
+        pd.DataFrame: A clean, feature-rich DataFrame ready for model training and evaluation.
+    """
+    logging.info(f"Starting Data Preparation Pipeline for Ticker: {emiten}")
+
+    if download:
+        logging.info(f"Downloading stock data for ticker {emiten}.JK")
+        data = _download_stock_data(emiten, start_date, end_date)
+ 
+    else:
+        logging.info("Loading data from local 'dummy_data.csv' file.")
+        data = pd.read_csv('dataPreparation/dummy_data.csv')
+    
+    logging.info("Generating technical indicators as features")
+    data = generate_all_technical_indicators(data)
+
+    for window in rolling_windows:
+        logging.info(f"Generating upcoming {window} trend r-squared score labels as target variables")
+        data = _generate_all_linreg_rsquared_score(data, target_column, window)
+    
+    logging.info('Dropping rows containing missing target variables')
+    data.dropna(subset=[f'Upcoming {window} Days Strength' for window in rolling_windows], inplace=True)
 
     logging.info(f"Succesfully Executed the Data Preparation Pipeline for {emiten}")
 

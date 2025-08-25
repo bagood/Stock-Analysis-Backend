@@ -93,7 +93,7 @@ def initialize_and_fit_model(train_feature: np.array, train_target: np.array, pr
     hyper_tune_search = BayesSearchCV(
         estimator=model,
         search_spaces=search_spaces,
-        n_iter=25,
+        n_iter=5,
         cv=predefined_split_index,
         scoring=scoring_method,
         n_jobs=-1,
@@ -111,7 +111,7 @@ def initialize_and_fit_model(train_feature: np.array, train_target: np.array, pr
 
     return best_model
 
-def _calculate_classification_metrics(target_true: np.array, target_pred: np.array) -> (np.array, np.array, np.array, np.array):
+def _calculate_classification_metrics(target_true: np.array, target_pred: np.array, pos_labels: list) -> (np.array, np.array, np.array, np.array):
     """
     (Internal Helper) Calculates key classification metrics for a binary prediction task.
 
@@ -123,10 +123,10 @@ def _calculate_classification_metrics(target_true: np.array, target_pred: np.arr
         tuple: A tuple containing accuracy, precision for both classes, and recall for both classes.
     """
     accuracy = accuracy_score(target_true, target_pred)
-    precision_up_trend = precision_score(target_true, target_pred, pos_label='Up Trend', zero_division=0)
-    precision_down_trend = precision_score(target_true, target_pred, pos_label='Down Trend', zero_division=0)
-    recall_up_trend = recall_score(target_true, target_pred, pos_label='Up Trend', zero_division=0)
-    recall_down_trend = recall_score(target_true, target_pred, pos_label='Down Trend', zero_division=0)
+    precision_up_trend = precision_score(target_true, target_pred, pos_label=pos_labels[0], zero_division=0)
+    precision_down_trend = precision_score(target_true, target_pred, pos_label=pos_labels[1], zero_division=0)
+    recall_up_trend = recall_score(target_true, target_pred, pos_label=pos_labels[0], zero_division=0)
+    recall_down_trend = recall_score(target_true, target_pred, pos_label=pos_labels[1], zero_division=0)
 
     return accuracy, precision_up_trend, precision_down_trend, recall_up_trend, recall_down_trend
 
@@ -146,7 +146,7 @@ def _calculate_gini(target_true: np.array, target_pred_proba: np.array) -> float
         float: The calculated Gini coefficient, or 0.0 if AUC cannot be calculated.
     """
     try:
-        positive_class_index = np.where(np.unique(target_true) == 'Up Trend')[0][0]
+        positive_class_index = np.where((np.unique(target_true) == 'Up Trend') | (np.unique(target_true) == 'Strong Trend'))[0][0]
         auc = roc_auc_score(target_true, target_pred_proba[:, positive_class_index])
         gini = 2 * auc - 1
     except (ValueError, IndexError):
@@ -155,7 +155,7 @@ def _calculate_gini(target_true: np.array, target_pred_proba: np.array) -> float
 
     return gini
 
-def measure_model_performance(model, feature: np.array, target: np.array, dataset_name: str) -> dict:
+def measure_model_performance(model, feature: np.array, target: np.array, dataset_name: str, pos_labels: list) -> dict:
     """
     Measures and reports the performance of the model on a given dataset.
 
@@ -172,22 +172,22 @@ def measure_model_performance(model, feature: np.array, target: np.array, datase
     target_pred = model.predict(feature)
     target_pred_proba = model.predict_proba(feature)
 
-    accuracy, prec_up, prec_down, rec_up, rec_down = _calculate_classification_metrics(target, target_pred)
+    accuracy, prec_pos, prec_neg, rec_pos, rec_neg = _calculate_classification_metrics(target, target_pred, pos_labels)
     gini = _calculate_gini(target, target_pred_proba)
 
     all_metrics = {
         'Accuracy': [accuracy],
-        'Precision Up Trend': [prec_up],
-        'Precision Down Trend': [prec_down],
-        'Recall Up Trend': [rec_up],
-        'Recall Down Trend': [rec_down],
+        f'Precision {pos_labels[0].title()}': [prec_pos],
+        f'Precision {pos_labels[1].title()}': [prec_neg],
+        f'Recall {pos_labels[0].title()}': [rec_pos],
+        f'Recall {pos_labels[1].title()}': [rec_neg],
         'Gini': [gini]
     }
-    logging.info(f"{dataset_name} Set Performance - Accuracy: {all_metrics['Accuracy'][0]:.4f}, Gini: {all_metrics['Gini'][0]:.4f}, Up Trend Precision: {all_metrics['Precision Up Trend'][0]:.4f}, Down Trend Precision: {all_metrics['Precision Down Trend'][0]:.4f}")
+    logging.info(f"{dataset_name} Set Performance - Accuracy: {all_metrics['Accuracy'][0]:.4f}, Gini: {all_metrics['Gini'][0]:.4f}, {pos_labels[0].title()} Precision: {prec_pos:.4f}, {pos_labels[1].title()} Precision: {prec_neg:.4f}")
 
     return all_metrics
 
-def develop_model(prepared_data: pd.DataFrame, target_column: str) -> (any, dict, dict):
+def develop_model(prepared_data: pd.DataFrame, target_column: str, pos_labels: list) -> (any, dict, dict):
     """
     Main orchestration function for the entire model development process.
 
@@ -214,27 +214,14 @@ def develop_model(prepared_data: pd.DataFrame, target_column: str) -> (any, dict
     logging.info("Splitting data into training, validation, testing, and forecast sets.")
     train_feature, train_target, test_feature, test_target, cv_split = split_data_to_train_val_test(prepared_data, feature_columns, target_column)
 
-    remodel_count = 2
-    while True:
-        logging.info("Initializing CatBoost model and starting hyperparameter tuning with BayesSearchCV")
-        model = initialize_and_fit_model(train_feature, train_target, cv_split)
+    logging.info("Initializing CatBoost model and starting hyperparameter tuning with BayesSearchCV")
+    model = initialize_and_fit_model(train_feature, train_target, cv_split)
 
-        logging.info("Measuring model performance for training data")
-        train_metrics = measure_model_performance(model, train_feature, train_target, 'Training')
+    logging.info("Measuring model performance for training data")
+    train_metrics = measure_model_performance(model, train_feature, train_target, 'Training', pos_labels)
 
-        logging.info("Measuring model performance for testing data")
-        test_metrics = measure_model_performance(model, test_feature, test_target, 'Testing')
-        
-        if ((test_metrics['Precision Up Trend'][0] >= 0.75) | (test_metrics['Precision Down Trend'][0] >= 0.75)) & (test_metrics['Gini'][0] >= 0.45):
-            logging.info(f"Model has met the desired performance")
-            break
-        else:
-            if remodel_count > 0:
-                logging.info(f"Model has not yet met the desired performance, retrying the model development procedures")
-                remodel_count -= 1
-            else:
-                logging.info(f"Model has not yet met the desired performance, stopping the model development procedures")
-                break
+    logging.info("Measuring model performance for testing data")
+    test_metrics = measure_model_performance(model, test_feature, test_target, 'Testing', pos_labels)
 
     logging.info(f"Model Development for '{target_column}' Finished Successfully")
     

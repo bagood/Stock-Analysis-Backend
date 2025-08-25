@@ -3,6 +3,7 @@ import pandas as pd
 import yfinance as yf
 from datetime import datetime
 from curl_cffi import requests
+from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 
 def _download_stock_data(emiten: str, start_date: str, end_date: str) -> pd.DataFrame: 
@@ -56,10 +57,6 @@ def _generate_linreg_gradient(target_data: np.array) -> float:
     Returns:
         float: The calculated slope (gradient) of the regression line.
     """
-    target_data = target_data[~np.isnan(target_data)]
-    if len(target_data) < 2:
-        return np.nan
-
     X = np.arange(len(target_data)).reshape(-1, 1)
     y = target_data - target_data[0]
 
@@ -68,6 +65,27 @@ def _generate_linreg_gradient(target_data: np.array) -> float:
     linreg_gradient = model.coef_[0]
     
     return linreg_gradient
+
+def _generate_linreg_rsquared_score(target_data: np.array) -> float:
+    """
+    (Internal Helper)
+
+    Args:
+        target_data (np.array): A numpy array of numerical data (e.g., closing prices).
+
+    Returns:
+        float:
+    """
+    X = np.arange(len(target_data)).reshape(-1, 1)
+    y = target_data - target_data[0]
+
+    model = LinearRegression(fit_intercept=False)
+    model.fit(X, y)
+    
+    y_pred = model.predict(X)
+    rsquared_score = r2_score(y, y_pred)
+    
+    return rsquared_score
 
 def _bin_linreg_gradients(val: float) -> str:
     """
@@ -86,6 +104,23 @@ def _bin_linreg_gradients(val: float) -> str:
         return 'Down Trend'
     else:
         return 'Up Trend'
+    
+def _bin_linreg_rsquared_score(val: float) -> str:
+    """
+    (Internal Helper)
+
+    Args:
+        val (float):
+
+    Returns:
+        str:
+    """
+    if np.isnan(val):
+        return val
+    if val <= 0.45:
+        return 'Weak Trend'
+    else:
+        return 'Strong Trend'
 
 def _generate_all_linreg_gradients(data: pd.DataFrame, target_column: str, rolling_window: int) -> pd.DataFrame:
     """
@@ -108,7 +143,7 @@ def _generate_all_linreg_gradients(data: pd.DataFrame, target_column: str, rolli
     target_data = data[target_column].values
 
     linreg_gradients = [
-        _generate_linreg_gradient(target_data[i+1 : i+1+rolling_window])
+        _generate_linreg_gradient(target_data[i : i+rolling_window])
         for i in range(len(target_data) - rolling_window)
     ]
 
@@ -117,5 +152,33 @@ def _generate_all_linreg_gradients(data: pd.DataFrame, target_column: str, rolli
 
     data[column_name] = full_gradient_list
     data[column_name] = data[column_name].apply(_bin_linreg_gradients)
+    
+    return data
+
+def _generate_all_linreg_rsquared_score(data: pd.DataFrame, target_column: str, rolling_window: int) -> pd.DataFrame:
+    """
+    (Internal Helper)
+
+    Args:
+        data (pd.DataFrame): The input DataFrame containing stock data.
+        target_column (str): The name of the column to analyze (e.g., 'Close').
+        rolling_window (int): The number of future days to look at for the trend.
+
+    Returns:
+        pd.DataFrame:
+    """
+    column_name = f'Upcoming {rolling_window} Days Strength'    
+    target_data = data[target_column].values
+
+    linreg_rsquared_score = [
+        _generate_linreg_rsquared_score(target_data[i : i+rolling_window])
+        for i in range(len(target_data) - rolling_window)
+    ]
+
+    padding = [np.nan] * rolling_window
+    full_rsquared_score_list = linreg_rsquared_score + padding
+
+    data[column_name] = full_rsquared_score_list
+    data[column_name] = data[column_name].apply(_bin_linreg_rsquared_score)
     
     return data

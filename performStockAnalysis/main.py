@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from modelDevelopment.main import develop_model
 from dataPreparation.helper import _download_stock_data
-from dataPreparation.main import prepare_data_for_modelling, prepare_data_for_forecasting
+from dataPreparation.main import prepare_data_for_modelling_trend, prepare_data_for_modelling_strength, prepare_data_for_forecasting
 from performStockAnalysis.helper import _combine_train_test_metrics_into_single_df, _save_developed_model
 
 logging.basicConfig(
@@ -65,7 +65,7 @@ def select_kode_to_model(n_kode_saham_limit: int = 0) -> np.array:
 
     return selected_kode
 
-def develop_models_for_selected_kode(selected_kode: list):
+def develop_trend_models(selected_kode: list):
     """
     Orchestrates the model development pipeline for a list of selected stocks.
 
@@ -85,48 +85,43 @@ def develop_models_for_selected_kode(selected_kode: list):
     failed_stocks = []
 
     for i, kode in enumerate(selected_kode):
-        try:
-            logging.info(f"Processing Ticker: {kode} ({i+1}/{len(selected_kode)})")
-            
-            logging.info(f"Preparing data for {kode} with 10 and 15-day trend targets")
-            prepared_data = prepare_data_for_modelling(
-                emiten=kode, 
-                start_date='2021-01-01', 
-                end_date='', 
-                target_column='Close', 
-                rolling_windows=[10, 15], 
-                download=True
-            )
-
-            if prepared_data.empty:
-                logging.warning(f"Data preparation for {kode} resulted in an empty DataFrame. Skipping model development.")
-                continue
-            
-            logging.info(f"Developing model for '{kode}' - 10 Day Trend")
-            model_10_days, train_metrics_10_days, test_metrics_10_days = develop_model(prepared_data, 'Upcoming 10 Days Trend')
-            
-            logging.info(f"Developing model for '{kode}' - 15 Day Trend")
-            model_15_days, train_metrics_15_days, test_metrics_15_days = develop_model(prepared_data, 'Upcoming 15 Days Trend')
-
-            logging.info(f"Saving models and collating performance metrics for {kode}")
-            _save_developed_model(model_10_days, kode, '10dd')
-            _save_developed_model(model_15_days, kode, '15dd')
-
-            logging.info(f"Measuring model performances on training and testing sets")
-            train_test_10_days = _combine_train_test_metrics_into_single_df(kode, train_metrics_10_days, test_metrics_10_days)
-            train_test_15_days = _combine_train_test_metrics_into_single_df(kode, train_metrics_15_days, test_metrics_15_days)
-            all_model_performances_10_days = pd.concat((all_model_performances_10_days, train_test_10_days), ignore_index=True)
-            all_model_performances_15_days = pd.concat((all_model_performances_15_days, train_test_15_days), ignore_index=True)
-            
-            logging.info(f"Finished processing for Ticker: {kode}")
+        logging.info(f"Processing Ticker: {kode} ({i+1}/{len(selected_kode)})")
         
-        except:
-            failed_stocks.append(kode)
-            logging.warning(f"Failed processing for Ticker: {kode}")
+        logging.info(f"Preparing data for {kode} with 10 and 15-day trend targets")
+        prepared_data = prepare_data_for_modelling_trend(
+            emiten=kode, 
+            start_date='2021-01-01', 
+            end_date='', 
+            target_column='Close', 
+            rolling_windows=[10, 15], 
+            download=True
+        )
+
+        if prepared_data.empty:
+            logging.warning(f"Data preparation for {kode} resulted in an empty DataFrame. Skipping model development.")
+            continue
+        
+        logging.info(f"Developing model for '{kode}' - 10 Day Trend")
+        model_10_days, train_metrics_10_days, test_metrics_10_days = develop_model(prepared_data, 'Upcoming 10 Days Trend', ['Up Trend', 'Down Trend'])
+        
+        logging.info(f"Developing model for '{kode}' - 15 Day Trend")
+        model_15_days, train_metrics_15_days, test_metrics_15_days = develop_model(prepared_data, 'Upcoming 15 Days Trend', ['Up Trend', 'Down Trend'])
+
+        logging.info(f"Saving models and collating performance metrics for {kode}")
+        _save_developed_model(model_10_days, kode, 'trend', '10dd')
+        _save_developed_model(model_15_days, kode, 'trend', '15dd')
+
+        logging.info(f"Measuring model performances on training and testing sets")
+        train_test_10_days = _combine_train_test_metrics_into_single_df(kode, train_metrics_10_days, test_metrics_10_days)
+        train_test_15_days = _combine_train_test_metrics_into_single_df(kode, train_metrics_15_days, test_metrics_15_days)
+        all_model_performances_10_days = pd.concat((all_model_performances_10_days, train_test_10_days), ignore_index=True)
+        all_model_performances_15_days = pd.concat((all_model_performances_15_days, train_test_15_days), ignore_index=True)
+        
+        logging.info(f"Finished processing for Ticker: {kode}")
 
     developed_date = datetime.now().date().strftime('%Y%m%d')
-    filename_10dd = f'database/modelPerformances/modelPerformance-10dd-{developed_date}.csv'
-    filename_15dd = f'database/modelPerformances/modelPerformance-15dd-{developed_date}.csv'
+    filename_10dd = f'database/modelPerformances/trend/modelPerformance-10dd-{developed_date}.csv'
+    filename_15dd = f'database/modelPerformances/trend/modelPerformance-15dd-{developed_date}.csv'
 
     all_model_performances_10_days.to_csv(filename_10dd, index=False)
     logging.info(f"Succefully saved model performances on forecasting upcoming 10 days trend to {filename_10dd}")
@@ -134,12 +129,66 @@ def develop_models_for_selected_kode(selected_kode: list):
     all_model_performances_15_days.to_csv(filename_15dd, index=False)
     logging.info(f"Succefully saved model performances on forecasting upcoming 15 days trend to {filename_15dd}")
 
-    failed_stock_path = f'database/modelPerformances/failedStocks-{developed_date}.txt'
-    logging.info(f"Saving stocks that are failed being processed to '{failed_stock_path }'...")
-    with open(failed_stock_path, "w") as file:
-        for failed_stock in failed_stocks:
-            file.write(failed_stock + "\n")
-    logging.info("List of failed stocks saved successfully")
+    logging.info("Bulk Model Development Complete")
+
+    return
+
+def develop_strength_models(selected_kode: list):
+    """
+
+    Args:
+        selected_kode (list): A list of stock ticker symbols to process.
+    """
+    logging.info(f"Starting Bulk Model Development for {len(selected_kode)} Selected Stocks")
+    
+    all_model_performances_10_days = pd.DataFrame()
+    all_model_performances_15_days = pd.DataFrame()
+    failed_stocks = []
+
+    for i, kode in enumerate(selected_kode):
+        logging.info(f"Processing Ticker: {kode} ({i+1}/{len(selected_kode)})")
+        
+        logging.info(f"Preparing data for {kode} with 10 and 15-day trend strength targets")
+        prepared_data = prepare_data_for_modelling_strength(
+            emiten=kode, 
+            start_date='2021-01-01', 
+            end_date='', 
+            target_column='Close', 
+            rolling_windows=[10, 15], 
+            download=True
+        )
+
+        if prepared_data.empty:
+            logging.warning(f"Data preparation for {kode} resulted in an empty DataFrame. Skipping model development.")
+            continue
+        
+        logging.info(f"Developing model for '{kode}' - 10 Day Trend Strength")
+        model_10_days, train_metrics_10_days, test_metrics_10_days = develop_model(prepared_data, 'Upcoming 10 Days Strength', ['Strong Trend', 'Weak Trend'])
+        
+        logging.info(f"Developing model for '{kode}' - 15 Day Trend Strength")
+        model_15_days, train_metrics_15_days, test_metrics_15_days = develop_model(prepared_data, 'Upcoming 15 Days Strength', ['Strong Trend', 'Weak Trend'])
+
+        logging.info(f"Saving models and collating performance metrics for {kode}")
+        _save_developed_model(model_10_days, kode, 'strength', '10dd')
+        _save_developed_model(model_15_days, kode, 'strength', '15dd')
+
+        logging.info(f"Measuring model performances on training and testing sets")
+        train_test_10_days = _combine_train_test_metrics_into_single_df(kode, train_metrics_10_days, test_metrics_10_days)
+        train_test_15_days = _combine_train_test_metrics_into_single_df(kode, train_metrics_15_days, test_metrics_15_days)
+        all_model_performances_10_days = pd.concat((all_model_performances_10_days, train_test_10_days), ignore_index=True)
+        all_model_performances_15_days = pd.concat((all_model_performances_15_days, train_test_15_days), ignore_index=True)
+        
+        logging.info(f"Finished processing for Ticker: {kode}")
+        
+    developed_date = datetime.now().date().strftime('%Y%m%d')
+    filename_10dd = f'database/modelPerformances/strength/modelPerformance-10dd-{developed_date}.csv'
+    filename_15dd = f'database/modelPerformances/strength/modelPerformance-15dd-{developed_date}.csv'
+
+    all_model_performances_10_days.to_csv(filename_10dd, index=False)
+    logging.info(f"Succefully saved model performances on forecasting upcoming 10 days trend to {filename_10dd}")
+
+    all_model_performances_15_days.to_csv(filename_15dd, index=False)
+    logging.info(f"Succefully saved model performances on forecasting upcoming 15 days trend to {filename_15dd}")
 
     logging.info("Bulk Model Development Complete")
 

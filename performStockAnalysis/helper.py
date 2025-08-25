@@ -26,7 +26,7 @@ def _combine_train_test_metrics_into_single_df(kode: str, train_metrics: dict, t
 
     return train_test_df
 
-def _save_developed_model(model, kode: str, model_type: str):
+def _save_developed_model(model, kode: str, model_type: str, model_dd: str):
     """
     Saves a trained model object to a file using pickle.
 
@@ -36,10 +36,10 @@ def _save_developed_model(model, kode: str, model_type: str):
     Args:
         model (object): The trained model object to be saved.
         kode (str): The stock ticker symbol.
-        model_type (str): A descriptor for the model type (e.g., '10dd', '15dd').
+        model_dd (str): A descriptor for the model type related with day of forecasts (e.g., '10dd', '15dd').
     """ 
     developed_date = datetime.now().date().strftime('%Y%m%d')
-    filename = f'database/developedModels/{kode}-{model_type}-{developed_date}.pkl'
+    filename = f'database/developedModels/{model_type}/{kode}-{model_dd}-{developed_date}.pkl'
     
     with open(filename, 'wb') as file:
         pickle.dump(model, file)

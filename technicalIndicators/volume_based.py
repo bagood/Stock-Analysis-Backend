@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from stock_indicators import indicators
 
-from technicalIndicators.helpers import identify_historical_trends
+from technicalIndicators.helper import identify_historical_trends
 
 def calculate_on_balance_volume(prepared_data):
     result = indicators.get_obv(prepared_data, 10)
