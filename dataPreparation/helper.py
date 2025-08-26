@@ -105,7 +105,7 @@ def _bin_linreg_gradients(val: float) -> str:
     else:
         return 'Up Trend'
     
-def _bin_linreg_rsquared_score(val: float) -> str:
+def _bin_linreg_rsquared_score(val: float, quantile: float) -> str:
     """
     (Internal Helper)
 
@@ -117,7 +117,7 @@ def _bin_linreg_rsquared_score(val: float) -> str:
     """
     if np.isnan(val):
         return val
-    if val <= 0.45:
+    if val <= quantile:
         return 'Weak Trend'
     else:
         return 'Strong Trend'
@@ -179,6 +179,6 @@ def _generate_all_linreg_rsquared_score(data: pd.DataFrame, target_column: str, 
     full_rsquared_score_list = linreg_rsquared_score + padding
 
     data[column_name] = full_rsquared_score_list
-    data[column_name] = data[column_name].apply(_bin_linreg_rsquared_score)
+    data[column_name] = data[column_name].apply(lambda val: _bin_linreg_rsquared_score(val, np.quantile(linreg_rsquared_score, 0.6)))
     
     return data

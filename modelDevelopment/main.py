@@ -93,7 +93,7 @@ def initialize_and_fit_model(train_feature: np.array, train_target: np.array, pr
     hyper_tune_search = BayesSearchCV(
         estimator=model,
         search_spaces=search_spaces,
-        n_iter=5,
+        n_iter=25,
         cv=predefined_split_index,
         scoring=scoring_method,
         n_jobs=-1,
