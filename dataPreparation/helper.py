@@ -56,10 +56,6 @@ def _generate_linreg_gradient(target_data: np.array) -> float:
     Returns:
         float: The calculated slope (gradient) of the regression line.
     """
-    target_data = target_data[~np.isnan(target_data)]
-    if len(target_data) < 2:
-        return np.nan
-
     X = np.arange(len(target_data)).reshape(-1, 1)
     y = target_data - target_data[0]
 

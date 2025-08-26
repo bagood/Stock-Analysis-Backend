@@ -214,27 +214,14 @@ def develop_model(prepared_data: pd.DataFrame, target_column: str) -> (any, dict
     logging.info("Splitting data into training, validation, testing, and forecast sets.")
     train_feature, train_target, test_feature, test_target, cv_split = split_data_to_train_val_test(prepared_data, feature_columns, target_column)
 
-    remodel_count = 2
-    while True:
-        logging.info("Initializing CatBoost model and starting hyperparameter tuning with BayesSearchCV")
-        model = initialize_and_fit_model(train_feature, train_target, cv_split)
+    logging.info("Initializing CatBoost model and starting hyperparameter tuning with BayesSearchCV")
+    model = initialize_and_fit_model(train_feature, train_target, cv_split)
 
-        logging.info("Measuring model performance for training data")
-        train_metrics = measure_model_performance(model, train_feature, train_target, 'Training')
+    logging.info("Measuring model performance for training data")
+    train_metrics = measure_model_performance(model, train_feature, train_target, 'Training')
 
-        logging.info("Measuring model performance for testing data")
-        test_metrics = measure_model_performance(model, test_feature, test_target, 'Testing')
-        
-        if ((test_metrics['Precision Up Trend'][0] >= 0.75) | (test_metrics['Precision Down Trend'][0] >= 0.75)) & (test_metrics['Gini'][0] >= 0.45):
-            logging.info(f"Model has met the desired performance")
-            break
-        else:
-            if remodel_count > 0:
-                logging.info(f"Model has not yet met the desired performance, retrying the model development procedures")
-                remodel_count -= 1
-            else:
-                logging.info(f"Model has not yet met the desired performance, stopping the model development procedures")
-                break
+    logging.info("Measuring model performance for testing data")
+    test_metrics = measure_model_performance(model, test_feature, test_target, 'Testing')
 
     logging.info(f"Model Development for '{target_column}' Finished Successfully")
     
